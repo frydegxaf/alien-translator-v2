@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alien Translator 👽</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f1a;
+      --surface: #161928;
+      --border: #2a2f4a;
+      --accent: #7c6af7;
+      --accent2: #4ecdc4;
+      --text: #e8eaf6;
+      --muted: #7b82a8;
+      --pill-bg: #1e2236;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+
+    .wrap { width: 100%; max-width: 640px; }
+
+    .dir-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px;
+    }
+    .dir-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    .dir-btn.active {
+      background: linear-gradient(135deg, var(--accent), #5b52d4);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(124,106,247,0.4);
+    }
+
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.3rem;
+      margin-bottom: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .box:focus-within { border-color: var(--accent); }
+
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    textarea {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 16px;
+      color: var(--text);
+      resize: none;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    textarea::placeholder { color: var(--muted); }
+
+    .arrow {
+      text-align: center;
+      font-size: 22px;
+      color: var(--accent);
+      margin: 0.25rem 0;
+      opacity: 0.7;
+    }
+
+    .output-text {
+      font-size: 16px;
+      color: var(--accent2);
+      min-height: 64px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      font-style: italic;
+    }
+    .output-text.empty { color: var(--muted); font-style: normal; }
+
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    .translate-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #5b52d4);
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      margin-top: 0.25rem;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 4px 15px rgba(124,106,247,0.3);
+      letter-spacing: 0.02em;
+    }
+    .translate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .translate-btn:active { transform: translateY(0); }
+
+    .unknown-banner {
+      margin-top: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1.1rem;
+      font-size: 13px;
+      color: var(--muted);
+      display: none;
+    }
+    .unknown-banner strong { color: var(--text); }
+    .unk-words { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+    .unk-pill {
+      display: inline-block;
+      font-size: 12px;
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px 10px;
+      color: #f9a8d4;
+    }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Alien Translator</h1>
+  <p>Translate between English and funny alien</p>
+</header>
+
+<div class="wrap">
+  <div class="dir-toggle">
+    <button class="dir-btn active" id="btn-en">English → Alien</button>
+    <button class="dir-btn" id="btn-al">Alien → English</button>
+  </div>
+
+  <div class="box">
+    <div class="label" id="input-label">Type in English</div>
+    <textarea id="input-area" rows="4" placeholder="e.g. I want to go to the park with my friend"></textarea>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <div class="box">
+    <div class="label" id="output-label">Alien translation</div>
+    <div class="output-text empty" id="output-area">Your translation will appear here...</div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <button class="translate-btn" id="translate-btn">Translate ✨</button>
+
+  <div class="unknown-banner" id="unknown-banner">
+    <strong>🤔 Unknown words (kept as-is):</strong>
+    <div class="unk-words" id="unk-words-list"></div>
+  </div>
+</div>
+
+<footer>Made with zib zub</footer>
+
+<script>
+const BASE_DICT = {
+  "i don't know": "zab zup zib",
+  "i want": "zib nib zap",
+  "i need": "zib glorp nib",
+  "i like": "zib woozib",
+  "i love you": "zib zub zab yab",
+  "i hate": "zib grob",
+  "i am": "zib blib",
+  "i have": "zib hav zib",
+  "i think": "zib thinkzob",
+  "i feel": "zib feelzib",
+  "i know": "zib nozib",
+  "i don't": "zib bleb",
+  "i can't": "zib nozob zep",
+  "i will": "zib wilzib",
+  "i did": "zib didlib",
+  "thank you": "zank zib",
+  "good morning": "zeb zab zib",
+  "good night": "zeb zab zab",
+  "good afternoon": "zeb zab noonzib",
+  "good evening": "zeb zab evzib",
+  "good luck": "zeb zab luckzob",
+  "good job": "zeb zab jobzib",
+  "good bye": "zeb zab byezib",
+  "how are you": "howb arez yab",
+  "what is": "whaz iz",
+  "what are": "whaz arez",
+  "where is": "wherib iz",
+  "there is": "therib iz",
+  "it is": "itzib iz",
+  "love you": "zib zub zab",
+  "let me": "letzib mez",
+  "let's go": "letzib vroom zib",
+  "of course": "obfkorzib",
+  "no problem": "bleb bleb problezib",
+  "for example": "forb examzib",
+  "right now": "rightzib nowzib",
+  "a lot": "blobbo blop",
+  "come on": "komzib onb",
+  "hold on": "holdzib onb",
+  "watch out": "wachzib outzib",
+  "of course": "obf korzib",
+  "all right": "awlzib rightzib",
+  "too much": "toob munchib",
+  "so much": "soz munchib",
+  "as well": "azzib welzib",
+  "as soon as": "azzib soonzib azzib",
+  "each other": "eachzib othzib",
+
+  "i": "zib", "you": "yab", "we": "wib wab", "they": "theb thob",
+  "he": "hib", "she": "shob", "it": "itzib",
+  "me": "mez", "him": "himb", "her": "hobmez", "us": "uzb", "them": "thebb",
+  "my": "mib", "your": "yob", "his": "hizob", "its": "itzoby",
+  "our": "orb", "their": "thebob", "myself": "mib selfzib",
+  "yourself": "yob selfzib", "himself": "himb selfzib", "herself": "hobmez selfzib",
+  "who": "whoz", "whom": "whomz", "whose": "whozob",
+
+  "is": "iz", "are": "arez", "was": "woz", "were": "worzib",
+  "be": "blib", "been": "blibn", "being": "blibzib",
+  "am": "amzib", "will": "wilzib", "would": "wudzib", "shall": "shalizib",
+  "should": "shudlib", "could": "kudlib", "can": "zob zep", "cannot": "zob zep bleb",
+  "may": "mayzob", "might": "mitezib", "must": "mustzib", "ought": "outzib",
+  "do": "duzib", "does": "duzibz", "did": "didlib", "done": "dunzib",
+  "have": "hav zib", "has": "hazib", "had": "hadzib", "having": "havzibbing",
+  "not": "bleb", "don't": "bleb", "doesn't": "duzibz bleb", "didn't": "didlib bleb",
+  "isn't": "iz bleb", "aren't": "arez bleb", "wasn't": "woz bleb",
+  "won't": "wilzib bleb", "wouldn't": "wudzib bleb", "can't": "zob zep bleb",
+  "shouldn't": "shudlib bleb", "couldn't": "kudlib bleb",
+
+  "the": "theb", "a": "ab", "an": "anb",
+  "this": "thiz", "that": "thaz", "these": "theezib", "those": "thozib",
+  "any": "enyzib", "some": "sumzib", "all": "awlzib", "every": "evzib",
+  "each": "eachzib", "both": "bozib", "either": "eethzib", "neither": "neethzib",
+  "many": "menzib", "much": "munchib", "few": "fyuzib", "little": "litnib",
+  "several": "sevzib", "enough": "enuffzib", "most": "mozib", "more": "morzib",
+  "less": "lezzib", "least": "leestzib", "other": "othzib", "another": "anothzib",
+  "such": "suchzib", "same": "zab zab", "own": "ownzib",
+
+  "and": "zand", "or": "orb", "but": "blob", "so": "soz", "yet": "yetzib",
+  "for": "forb", "nor": "norzib", "although": "awlthozib", "because": "bekozib",
+  "since": "sinzib", "unless": "unlezib", "until": "untilzib", "while": "whilzib",
+  "if": "ifzib", "whether": "whethzib", "though": "thozib", "even": "evenzib",
+  "to": "tob", "of": "obf", "in": "inb", "on": "onb", "at": "atb", "with": "wib",
+  "from": "fromzib", "by": "byzib", "about": "abutzib", "above": "abuvzib",
+  "below": "belozib", "between": "betweenzib", "through": "thruzib",
+  "into": "intob", "onto": "ontob", "out": "outzib", "up": "upzib", "down": "downzib",
+  "over": "ovzib", "under": "underzib", "after": "aftzib", "before": "bforzib",
+  "behind": "behinzib", "beside": "besizib", "beyond": "beyonzib",
+  "during": "durzib", "except": "exepzib", "inside": "insizib", "outside": "outsizib",
+  "per": "perzib", "since": "sinzib", "than": "thanzib", "toward": "towarzib",
+  "within": "withizib", "without": "withoutzib", "near": "nearzib", "around": "arounzib",
+  "along": "alongzib", "across": "akrozzib", "against": "agenzib", "among": "amungzib",
+
+  "go": "vroom zib", "come": "komzib", "run": "zoomp", "walk": "wompzib",
+  "stop": "stobb", "start": "startzib", "wait": "waaib", "look": "lookzib",
+  "see": "seezib", "hear": "hearzib", "say": "sayzib", "tell": "telzib",
+  "ask": "askzib", "answer": "anzwerzib", "know": "nozib", "think": "thinkzob",
+  "feel": "feelzib", "want": "nib zap", "need": "glorp nib", "like": "woozib",
+  "love": "zib zub", "hate": "grob grob", "wish": "wishzib", "hope": "hopzib",
+  "try": "tryzib", "make": "makzib", "take": "takzib", "give": "givzib",
+  "get": "getzib", "put": "putzib", "let": "letzib", "keep": "keepzib",
+  "leave": "leavzib", "bring": "bringzib", "send": "sendzib", "call": "kalzib",
+  "use": "yuzib", "find": "finzib", "lose": "loozib", "turn": "turnzib",
+  "open": "openzib", "close": "klozib", "show": "shozib", "play": "playzib",
+  "work": "workzib", "help": "helblib", "move": "moovzib", "change": "chanzib",
+  "hold": "holdzib", "carry": "karyzib", "buy": "biyzib", "sell": "selzib",
+  "read": "reedzib", "write": "writzib", "speak": "speakzib", "talk": "tokzib",
+  "listen": "liszib", "watch": "wachzib", "learn": "learnzib", "teach": "teachzib",
+  "understand": "undazib", "remember": "rememzib", "forget": "forgetzib",
+  "believe": "believzib", "decide": "desizib", "choose": "choozib",
+  "happen": "hapnzib", "become": "bekomzib", "seem": "seemzib", "appear": "apeerzib",
+  "let": "letzib", "meet": "meetzib", "build": "buildzib", "break": "breakzib",
+  "fix": "fixzib", "clean": "kleanzib", "eat": "nom zib", "drink": "glug zap",
+  "sleep": "zzzblib", "wake": "wakzib", "sit": "plonk", "stand": "standzib",
+  "lie": "lizib", "rise": "ryzib", "fall": "fawlzib", "jump": "boing zap",
+  "swim": "swimzib", "fly": "flyzib", "drive": "drivzib", "ride": "ridzib",
+  "laugh": "heh bloop", "cry": "waaab", "sing": "singzib", "dance": "wiggy wub",
+  "cook": "kookzib", "grow": "grozib", "live": "livzib", "die": "diezib",
+  "fight": "fygtzib", "win": "winzib", "lose": "loozib", "pay": "payzib",
+  "count": "kountzib", "follow": "folzib", "allow": "alowzib", "add": "adzib",
+  "create": "kreatzib", "destroy": "destroyzib", "protect": "protekzib",
+  "join": "joinzib", "share": "sherzib", "save": "savzib", "drop": "dropzib",
+  "catch": "kachzib", "throw": "throzib", "pull": "pulzib", "push": "pushzib",
+  "hit": "hitzib", "cut": "kutzib", "hurt": "hurtzib", "kill": "kilzib",
+  "touch": "tuchzib", "taste": "tastzib", "smell": "smelzib",
+
+  "friend": "vip vop", "family": "famzib", "mother": "momzib", "father": "dadzib",
+  "sister": "siztzib", "brother": "bruzib", "child": "chilzib", "baby": "babzib",
+  "boy": "boyzib", "girl": "girlzib", "man": "manzib", "woman": "womzib",
+  "person": "perzib", "people": "peepzib", "human": "humzib",
+  "food": "blop blop", "water": "wub wub", "drink": "glug zap",
+  "snack": "nib nob", "meal": "meelzib", "breakfast": "brekzib",
+  "lunch": "lunzib", "dinner": "dinzib", "fruit": "frutzib", "vegetable": "vegzib",
+  "meat": "meetzob", "bread": "bredzib", "cake": "kakzib", "coffee": "koffzib",
+  "tea": "teazib", "juice": "joozib", "milk": "milzib", "soup": "soopzib",
+  "house": "homzib", "home": "homzib", "room": "roomzib", "door": "dorzib",
+  "window": "winzib", "floor": "florzib", "wall": "wallzib", "bed": "bedzib",
+  "chair": "cherzib", "table": "tablzib", "car": "karzib", "bus": "buzzib",
+  "train": "tranzib", "plane": "planezib", "bike": "bikzib", "road": "rodzib",
+  "street": "streetzib", "city": "sitzib", "town": "townzib", "country": "kunzib",
+  "world": "worlzib", "earth": "erthzib", "space": "spazib", "planet": "planzob",
+  "star": "starzib", "moon": "moonzib", "sun": "sunzib", "sky": "skyzib",
+  "cloud": "klowdzib", "rain": "rainzib", "snow": "snozib", "wind": "winzob",
+  "fire": "fyrzib", "water": "wub wub", "tree": "treezib", "flower": "flowzib",
+  "animal": "animzib", "dog": "wufzib", "cat": "meowzib", "bird": "birdzib",
+  "fish": "fishzib", "horse": "horzzib", "school": "skoolzib", "book": "bookzib",
+  "phone": "phonzib", "computer": "kompzib", "game": "gamzib", "music": "muzib",
+  "movie": "moovzob", "money": "munzib", "job": "jobzib", "work": "workzib",
+  "time": "timzib", "day": "dazib", "night": "nizib", "week": "weekzib",
+  "month": "munthzib", "year": "yearzib", "hour": "owrzib", "minute": "minzib",
+  "morning": "mornzib", "afternoon": "noonzib", "evening": "evzib",
+  "name": "namzib", "word": "wordzib", "idea": "ideazib", "question": "queszib",
+  "answer": "anzwerzib", "problem": "problezib", "story": "storzib",
+  "life": "lifzib", "death": "dethzib", "health": "helthzib",
+  "heart": "heartzib", "mind": "mindzib", "soul": "soulzib", "body": "bodyzib",
+  "hand": "handzib", "eye": "eyezib", "face": "facezib", "head": "hedzib",
+  "hair": "herzib", "mouth": "mowthzib", "ear": "earzib", "nose": "nozezib",
+  "arm": "armzib", "leg": "legzib", "foot": "futzib", "back": "bakzib",
+  "color": "kolzib", "size": "sizezib", "number": "numbzib", "letter": "letzob",
+  "language": "langzib", "voice": "voizib", "sound": "soundzib", "light": "lighzib",
+  "dark": "darkzib", "shadow": "shadzib", "path": "pathzib", "way": "wayzib",
+  "place": "playzob", "area": "areazib", "side": "sidzib", "end": "endzib",
+  "part": "partzib", "kind": "kyndzib", "type": "typzib", "thing": "thingzib",
+  "stuff": "stufzib", "point": "pointzib", "line": "linzib", "group": "groopzib",
+  "team": "teemzib", "game": "gamzib", "sport": "sportzib", "park": "parkzib",
+  "shop": "shopzib", "market": "markzib", "office": "offzib", "hospital": "hospzib",
+  "police": "polzib", "school": "skoolzib", "university": "univzib",
+  "art": "artzib", "science": "scienzib", "nature": "natchzib",
+
+  "good": "zap zub", "bad": "grob", "great": "greatzib", "terrible": "terrzib",
+  "big": "blobbo", "small": "tibnib", "large": "larzib", "tiny": "tinzib",
+  "long": "longzib", "short": "shortzib", "tall": "tallzib", "wide": "widzib",
+  "deep": "deepzib", "flat": "flatzib", "round": "rounzib", "straight": "stratzib",
+  "fast": "zoomp zoomp", "slow": "gluuub", "quick": "kwikzib", "early": "erlzib",
+  "late": "latzib", "young": "yungzib", "old": "groblib", "new": "nibzib",
+  "hot": "sizzlib", "cold": "brrrb", "warm": "wormzib", "cool": "koolzib",
+  "happy": "zippity zap", "sad": "bloop bloop", "angry": "grrrb", "scared": "eekzib",
+  "excited": "zippity zoob", "tired": "zzzib", "bored": "bordzib", "sick": "sickzib",
+  "healthy": "helzib", "strong": "strongzib", "weak": "weekzob", "brave": "bravzib",
+  "smart": "smartzib", "silly": "sillyzib", "funny": "funzib", "serious": "serzib",
+  "beautiful": "beluzib", "ugly": "uglzib", "pretty": "pretzib", "cute": "kyutzib",
+  "clean": "kleanzib", "dirty": "durtzib", "loud": "lowdzib", "quiet": "kwytzib",
+  "soft": "softzib", "hard": "hardzib", "heavy": "hevzib", "light": "lighzib",
+  "open": "openzib", "closed": "klozdzib", "full": "fulzib", "empty": "emptyzib",
+  "easy": "eezib", "hard": "hardzib", "difficult": "diffzib", "simple": "simpzib",
+  "true": "truezib", "false": "falzib", "real": "reelzib", "fake": "fakzib",
+  "safe": "savzob", "dangerous": "danzib", "free": "freezib", "busy": "bizzib",
+  "possible": "possizib", "impossible": "impossizib", "sure": "shorzib",
+  "different": "dizzib", "same": "zab zab", "special": "speshzib",
+  "important": "importzib", "nice": "nyzib", "awful": "awfulzib",
+  "amazing": "amazzib", "perfect": "perfzib", "wrong": "wronzib", "right": "rightzib",
+  "ready": "redzib", "able": "ablzib", "rich": "richzib", "poor": "porzib",
+  "lucky": "luckzib", "lost": "lostzib", "alone": "alonzib", "together": "togzib",
+  "strange": "stranzib", "normal": "normazib", "usual": "yoozib",
+  "own": "ownzib", "next": "nexib", "last": "lastzib", "first": "firstzib",
+  "second": "sekzib", "main": "mainzib", "whole": "holzib", "only": "onlzib",
+  "both": "bozib", "each": "eachzib", "certain": "sertnzib",
+  "popular": "popzib", "common": "komzob", "recent": "recentzib",
+
+  "very": "verizib", "really": "reelzib zib", "quite": "kwitzib", "just": "justzib",
+  "also": "awlzob", "too": "toob", "so": "soz", "well": "welzib",
+  "now": "nowzib", "then": "thenzib", "always": "awlwayzib", "never": "nevzib",
+  "often": "offenzib", "sometimes": "sumtimzib", "usually": "yoozibly",
+  "already": "awlredzib", "still": "stilzib", "yet": "yetzib", "soon": "soonzib",
+  "again": "agenb", "back": "bakzib", "together": "togzib", "once": "wunzib",
+  "maybe": "maybzib", "probably": "probzib", "almost": "awlmozib",
+  "especially": "espeshzib", "actually": "akshzib", "basically": "basikzib",
+  "finally": "finzibly", "suddenly": "sudnzib", "slowly": "gluuubly",
+  "quickly": "zoomp zoomp ly", "here": "herib", "there": "therib",
+  "everywhere": "evzib wherib", "nowhere": "nevzib wherib", "somewhere": "sumwherib",
+  "enough": "enuffzib", "instead": "instedzib", "however": "howevzib",
+  "though": "thozib", "therefore": "therforzib", "anyway": "enywayzib",
+  "otherwise": "othzib wizib", "exactly": "exakzib", "clearly": "klerzib",
+  "only": "onlzib", "mostly": "mozibly", "nearly": "nearzibly",
+  "either": "eethzib", "forward": "forwarzib", "away": "awayzib",
+
+  "zero": "zorzib", "one": "wunzib", "two": "twozib", "three": "threezib",
+  "four": "forzib", "five": "fivzib", "six": "sixzib", "seven": "sevzob",
+  "eight": "aytzib", "nine": "nynzib", "ten": "tenzib", "hundred": "hunzib",
+  "thousand": "thouzib", "million": "milzob", "first": "firstzib",
+  "second": "sekzib", "third": "thirdzib", "half": "hafzib", "double": "dublzib",
+
+  "today": "tob dazib", "tomorrow": "nexib dazib", "yesterday": "yestdazib",
+  "now": "nowzib", "later": "laterzib", "soon": "soonzib", "never": "nevzib",
+  "always": "awlwayzib", "sometimes": "sumtimzib", "often": "offenzib",
+  "night": "nizib", "morning": "mornzib", "afternoon": "noonzib", "evening": "evzib",
+  "week": "weekzib", "month": "munthzib", "year": "yearzib",
+  "monday": "modzib", "tuesday": "tuezdazib", "wednesday": "wenzib",
+  "thursday": "thurzdazib", "friday": "frydazib", "saturday": "saturzib", "sunday": "sunzib",
+  "january": "janzib", "february": "febzib", "march": "marzib", "april": "aprizib",
+  "june": "junzib", "july": "julzib", "august": "augzib",
+  "september": "sepzib", "october": "oktzib", "november": "novzib", "december": "deczib",
+
+  "hello": "zap zup", "hi": "hizib", "hey": "heyzib", "bye": "byezib",
+  "goodbye": "goobyezib", "please": "plib plib", "sorry": "sowwib",
+  "thanks": "zankzib", "welcome": "welkzib", "okay": "blab",
+  "yes": "zib", "no": "bleb bleb", "maybe": "maybzib",
+  "wow": "wowzib", "oops": "oopzib", "ouch": "owchzib", "yay": "yayzib",
+  "yummy": "yub dub", "disgusting": "bleck blorp", "gross": "groslib",
+  "amazing": "amazzib", "cool": "koolzib", "awesome": "awsumzib",
+  "whatever": "whatevzib", "really": "reelzib",
+  "skibidi": "zibzidi",
+
+  "red": "redzib", "blue": "bloozib", "green": "greenzib", "yellow": "yelzib",
+  "orange": "ornzib", "purple": "purpzib", "pink": "pinkzib", "black": "blakzib",
+  "white": "whitezib", "brown": "brownzib", "gray": "grayzib", "gold": "golzib",
+  "silver": "silvzib", "color": "kolzib",
+};
+
+const BASE_REVERSE = {};
+for (const [en, al] of Object.entries(BASE_DICT)) BASE_REVERSE[al] = en;
+
+let mode = "en2al";
+
+function tokenize(text) {
+  return text.toLowerCase().match(/[a-z']+|[^a-z'\s]+|\s+/gi) || [];
+}
+
+function translateTokens(tokens, forward) {
+  const dict = forward ? BASE_DICT : BASE_REVERSE;
+  const sortedKeys = Object.keys(dict).sort((a, b) => b.split(/\s+/).length - a.split(/\s+/).length || b.length - a.length);
+  let text = tokens.join("");
+  const lower = text.toLowerCase();
+  let result = lower;
+  const phs = {};
+  let pi = 0;
+  for (const key of sortedKeys) {
+    const ph = `\u00A7${pi}\u00A7`;
+    const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`\\b${esc}\\b`, 'gi');
+    if (re.test(result)) {
+      phs[ph] = dict[key];
+      result = result.replace(re, ph);
+      pi++;
+    }
+  }
+  for (const [ph, val] of Object.entries(phs)) result = result.replaceAll(ph, val);
+  return result;
+}
+
+function findUnknownWords(text, forward) {
+  const dict = forward ? BASE_DICT : BASE_REVERSE;
+  const sortedKeys = Object.keys(dict).sort((a, b) => b.split(/\s+/).length - a.split(/\s+/).length);
+  let remaining = text.toLowerCase();
+  for (const key of sortedKeys) {
+    const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    remaining = remaining.replace(new RegExp(`\\b${esc}\\b`, 'gi'), " ");
+  }
+  return [...new Set((remaining.match(/[a-z']+/gi) || []).filter(w => w.length > 1))];
+}
+
+function doTranslate() {
+  const input = document.getElementById("input-area").value.trim();
+  if (!input) return;
+  const output = document.getElementById("output-area");
+  const status = document.getElementById("status");
+  const banner = document.getElementById("unknown-banner");
+  const unkList = document.getElementById("unk-words-list");
+  const forward = mode === "en2al";
+
+  const result = translateTokens(tokenize(input), forward);
+  output.textContent = result;
+  output.classList.remove("empty");
+
+  const unknown = findUnknownWords(input, forward);
+  if (unknown.length > 0) {
+    banner.style.display = "block";
+    unkList.innerHTML = unknown.map(w => `<span class="unk-pill">${w}</span>`).join("");
+    status.textContent = `${unknown.length} word(s) not in the alien dictionary — kept as-is`;
+  } else {
+    banner.style.display = "none";
+    status.textContent = "✓ Full translation!";
+  }
+}
+
+document.getElementById("translate-btn").addEventListener("click", doTranslate);
+document.getElementById("input-area").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doTranslate(); }
+});
+
+function setMode(m) {
+  mode = m;
+  const isEN = m === "en2al";
+  document.getElementById("btn-en").classList.toggle("active", isEN);
+  document.getElementById("btn-al").classList.toggle("active", !isEN);
+  document.getElementById("input-label").textContent = isEN ? "Type in English" : "Type in Alien";
+  document.getElementById("output-label").textContent = isEN ? "Alien translation" : "English translation";
+  document.getElementById("input-area").placeholder = isEN
+    ? "e.g. I want to go to the park with my friend"
+    : "e.g. zap zup vip vop, zib nib zap vroom zib";
+  document.getElementById("input-area").value = "";
+  document.getElementById("output-area").textContent = "Your translation will appear here...";
+  document.getElementById("output-area").classList.add("empty");
+  document.getElementById("status").textContent = "";
+  document.getElementById("unknown-banner").style.display = "none";
+}
+
+document.getElementById("btn-en").addEventListener("click", () => setMode("en2al"));
+document.getElementById("btn-al").addEventListener("click", () => setMode("al2en"));
+</script>
+</body>
+</html>
